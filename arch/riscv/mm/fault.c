@@ -9,6 +9,7 @@
 
 #include <linux/mm.h>
 #include <linux/kernel.h>
+#include <linux/kprobes.h>
 #include <linux/interrupt.h>
 #include <linux/perf_event.h>
 #include <linux/signal.h>
@@ -19,6 +20,28 @@
 #include <asm/tlbflush.h>
 
 #include "../kernel/head.h"
+
+#ifdef CONFIG_KPROBES
+static nokprobe_inline int notify_page_fault(struct pt_regs *regs, unsigned int cause)
+{
+	int ret = 0;
+
+	/* kprobe_running() needs smp_processor_id() */
+	if (!user_mode(regs)) {
+		preempt_disable();
+		if (kprobe_running() && kprobe_fault_handler(regs, cause))
+			ret = 1;
+		preempt_enable();
+	}
+
+	return ret;
+}
+#else
+static inline int notify_page_fault(struct pt_regs *regs, unsigned int cause)
+{
+	return 0;
+}
+#endif
 
 /*
  * This routine handles page faults.  It determines the address and the
@@ -36,6 +59,9 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 
 	cause = regs->cause;
 	addr = regs->badaddr;
+
+	if (notify_page_fault(regs, cause))
+		return;
 
 	tsk = current;
 	mm = tsk->mm;
@@ -280,3 +306,4 @@ vmalloc_fault:
 		return;
 	}
 }
+NOKPROBE_SYMBOL(do_page_fault);

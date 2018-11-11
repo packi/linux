@@ -130,6 +130,15 @@ static inline unsigned long regs_get_register(struct pt_regs *regs,
 
 	return *(unsigned long *)((unsigned long)regs + offset);
 }
+
+static inline void regs_set_register(struct pt_regs *regs,
+				     unsigned int offset, unsigned long value)
+{
+	if (offset > MAX_REG_OFFSET)
+		return;
+
+	*(unsigned long *)((unsigned long)regs + offset) = value;
+}
 #endif /* __ASSEMBLY__ */
 
 #endif /* _ASM_RISCV_PTRACE_H */

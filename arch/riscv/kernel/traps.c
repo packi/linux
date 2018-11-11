@@ -11,6 +11,7 @@
 #include <linux/sched/signal.h>
 #include <linux/signal.h>
 #include <linux/kdebug.h>
+#include <linux/kprobes.h>
 #include <linux/uaccess.h>
 #include <linux/mm.h>
 #include <linux/module.h>
@@ -123,6 +124,10 @@ static inline unsigned long get_break_insn_length(unsigned long pc)
 
 asmlinkage __visible void do_trap_break(struct pt_regs *regs)
 {
+#ifdef CONFIG_KPROBES
+	if (!user_mode(regs) && kprobe_handler(regs))
+		return;
+#endif
 	if (user_mode(regs))
 		force_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *)regs->epc);
 	else if (report_bug(regs->epc, regs) == BUG_TRAP_TYPE_WARN)
