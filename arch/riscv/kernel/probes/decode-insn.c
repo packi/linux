@@ -73,10 +73,10 @@ riscv_c_q1_b_offset(probe_opcode_t insn)
 static enum probe_insn
 riscv_decompress_q1_rr(s16 imm, u8 rd, struct kprobe *p)
 {
-	u8 group = imm & 0x20 >> 5;
-	u8 rs1_rd = rd & 0x07;
-	u8 rs2 = imm & 0x07;
-	u8 func = imm & 0x18 >> 3;
+	u8 group = (imm & 0x20) >> 5;
+	u8 rs1_rd = (rd & 0x7) + 8; // TODO: constant for 8...
+	u8 rs2 = (imm & 0x7) + 8;
+	u8 func = (imm & 0x18) >> 3;
 
 	/* group == 1 would be c.subw/c.addw and we don't have simulation
 	 * support for them at the moment */
@@ -166,31 +166,31 @@ riscv_decompress_q1_insn(probe_opcode_t insn, struct kprobe *p)
 				move_bit_at(insn, 12, 17) |
 				(insn & 0x7C) << 10,
 				17);
-			p->opcode = rv_lui(rd, imm >> 12);
+			p->opcode = rv_lui(rd, imm);
 			return INSN_GOOD_NO_SLOT;
 		}
 	} else if (func3 == 4) {
 		rd = (insn & 0xF80) >> 7;
 		imm = riscv_c_q1_imm_signed(insn);
 
-		switch (rd & 0x18 >> 3) {
+		switch ((rd & 0x18) >> 3) {
 			case 0:
 				if (imm == 0)
 					/* c.srli64 */
 					return INSN_REJECTED;
-				p->opcode = rv_srli(rd & 0x7, rd & 0x7, imm & 0xFFF);
+				p->opcode = rv_srli((rd & 0x7) + 8, (rd & 0x7) + 8, imm & 0xFFF);
 				p->ainsn.handler = rv_simulate_i_ins;
 				break;
 			case 1:
 				if (imm == 0)
 					/* c.srai64 */
 					return INSN_REJECTED;
-				p->opcode = rv_srai(rd & 0x7, rd & 0x7, imm & 0xFFF);
+				p->opcode = rv_srai((rd & 0x7) + 8, (rd & 0x7) + 8, imm & 0xFFF);
 				p->ainsn.handler = rv_simulate_i_ins;
 				break;
 			case 2:
 				/* c.andi */
-				p->opcode = rv_andi(rd & 0x7, rd & 0x7, imm & 0xFFF);
+				p->opcode = rv_andi((rd & 0x7) + 8, (rd & 0x7) + 8, imm & 0xFFF);
 				p->ainsn.handler = rv_simulate_i_ins;
 				break;
 			case 3:
@@ -229,28 +229,37 @@ riscv_decompress_q1_insn(probe_opcode_t insn, struct kprobe *p)
 
 static u8 riscv_q2_rs1_rd(probe_opcode_t insn)
 {
-	return ((insn & 0xF80) >> 5;
+	return (insn >> 7) & 0x1F;
 }
 
 static enum probe_insn
 riscv_decompress_q2_insn(probe_opcode_t insn, struct kprobe *p)
 {
-        u8 func3 = riscv_c_func3(insn);
-        u8 rd;
-        s16 imm;
-        if (func3 == 0) {
+	u8 func3 = riscv_c_func3(insn);
+	u8 rd = riscv_q2_rs1_rd(insn);
+	u16 imm = riscv_c_nzuimm(insn);
+	if (func3 == 0) {
 		/* c.slli/c.slli64 */
-		rd = riscv_q2_rs1_rd(insn);
-		p->opcode = rv_slli(rd, rd, riscv_c_nzuimm(insn));
+		p->opcode = rv_slli(rd, rd, imm);
 		p->ainsn.handler = rv_simulate_i_ins;
 		return INSN_GOOD_NO_SLOT;
 	} else if (func3 == 4) {
-		if (riscv_c_nzuimm(insn) == 0) {
+		if (imm == 0) {
 			/* c.jr */
-			p->opcode = rv_jalr(RV_REG_ZERO, riscv_q2_rs1_rd(insn), 0);
+			p->opcode = rv_jalr(RV_REG_ZERO, rd, 0);
 			p->ainsn.handler = rv_simulate_jalr;
-			return INSN_GOOD_NO_SLOT;
+		} else if ((imm & 0x20) == 0 && (imm & 0x1f) != 0)  {
+			/* c.mv */
+			p->opcode = rv_addi(rd, ((insn >> 2) & 0x1F), 0);
+			p->ainsn.handler = rv_simulate_i_ins;
+		} else if ((imm & 0x20) == 0x20 && (imm & 0x1f) != 0)  {
+			/* c.add */
+			p->opcode = rv_add(rd, rd, (insn >> 2) & 0x1f);
+			p->ainsn.handler = rv_simulate_r_ins;
+		} else {
+			return INSN_REJECTED;
 		}
+		return INSN_GOOD_NO_SLOT;
 	}
 	return INSN_REJECTED;
 }
@@ -322,3 +331,94 @@ riscv_probe_decode_insn(struct kprobe *p)
 	return riscv_decompress_insn(insn, p);
 }
 NOKPROBE_SYMBOL(riscv_probe_decode_insn);
+
+
+
+static __init int decode_insn_self_tests_init(void)
+{
+	struct kprobe p;
+	enum probe_insn res;
+        pr_info("Running RISC-V insn decode tests...\n");
+
+	/* c.li a2, 1 */
+	res = riscv_decompress_insn(0x4605, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.li a2, 1");
+	if (p.opcode != rv_addi(RV_REG_A2, RV_REG_ZERO, 1))
+		pr_warn("error uncompressing c.li a2, 1 %x", p.opcode);
+
+	/* c.lui t0,0x6 */
+	res = riscv_decompress_insn(0x6299, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.lui t0, 0x6");
+	if (p.opcode != rv_lui(RV_REG_T0, 0x6 << 12))
+		pr_warn("error uncompressing c.lui t0, 0x6 %x", p.opcode);
+
+	/* c.mv s0, a0 */
+	res = riscv_decompress_insn(0x842a, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.mv s0, a0");
+	if (p.opcode != rv_addi(RV_REG_FP, RV_REG_A0, 0))
+		pr_warn("error uncompressing c.mv s0, a0 %x", p.opcode);
+
+	/* c.mv s1, a1 */
+	res = riscv_decompress_insn(0x84ae, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.mv s1, a1");
+	if (p.opcode != rv_addi(RV_REG_S1, RV_REG_A1, 0))
+		pr_warn("error uncompressing c.mv s1, a1 %x", p.opcode);
+
+	/* c.sub a1, a1, a0 */
+	res = riscv_decompress_insn(0x8d89, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.sub a1, a1, a0");
+	if (p.opcode != rv_sub(RV_REG_A1, RV_REG_A1, RV_REG_A0))
+		pr_warn("error uncompressing c.sub a1, a1, a0 %x", p.opcode);
+
+	/* c.add ra, ra, a1 */
+	res = riscv_decompress_insn(0x90ae, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.add ra, ra, a1");
+	if (p.opcode != rv_add(RV_REG_RA, RV_REG_RA, RV_REG_A1))
+		pr_warn("error uncompressing c.add ra, ra, a1 %x", p.opcode);
+
+	/* c.add a0, a0, a1 */
+	res = riscv_decompress_insn(0x952e, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.add a0, a0, a1");
+	if (p.opcode != rv_add(RV_REG_A0, RV_REG_A0, RV_REG_A1))
+		pr_warn("error uncompressing c.add a0, a0, a1 %x", p.opcode);
+
+	/* c.or a2, a2, a1 */
+	res = riscv_decompress_insn(0x8e4d, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.or a2, a2, a1");
+	if (p.opcode != rv_or(RV_REG_A2,  RV_REG_A2, RV_REG_A1))
+		pr_warn("error uncompressing c.or a2, a2, a1 %x", p.opcode);
+
+	/* c.srli a2, a2, 0xc */
+	res = riscv_decompress_insn(0x8231, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.srli a2, a2, 0xc");
+	if (p.opcode != rv_srli(RV_REG_A2,  RV_REG_A2, 0xc))
+		pr_warn("error uncompressing c.srli a2, a2, 0xc %x", p.opcode);
+
+	/* c.slli a5, a5, 0x20 */
+	res = riscv_decompress_insn(0x1782, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.slli a5, a5, 0x20");
+	if (p.opcode != rv_slli(RV_REG_A5,  RV_REG_A5, 0x20))
+		pr_warn("error uncompressing c.slli a5, a5, 0x20 %x", p.opcode);
+
+	/* c.li a1, 8 */
+	res = riscv_decompress_insn(0x45a1, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.li a1, 8");
+	if (p.opcode != rv_addi(RV_REG_A1, RV_REG_ZERO,  8))
+		pr_warn("error uncompressing c.li a1, 8 %x", p.opcode);
+
+	pr_info("Done running RISC-V insn decode tests.\n");
+        return 0;
+}
+
+late_initcall(decode_insn_self_tests_init);
