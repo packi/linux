@@ -10,14 +10,14 @@
 static void set_register(struct pt_regs *regs, unsigned int reg,
 			 unsigned long value)
 {
-	// Don't write to sepc, in this context we assume this is x0
+	// Don't write to epc, in this context we assume this is x0
 	if (reg)
 		regs_set_register(regs, reg * sizeof(unsigned long), value);
 }
 
 static unsigned long get_register(struct pt_regs *regs, unsigned int reg)
 {
-	// Don't read from sepc, in this context we assume this is x0
+	// Don't read from epc, in this context we assume this is x0
 	if (reg)
 		return regs_get_register(regs, reg * sizeof(unsigned long));
 
@@ -205,7 +205,7 @@ void rv_simulate_rb_ins(u32 opcode, long addr, struct pt_regs *regs)
 	}
 	//pr_warning("rs1: %lx, rs2: %lx taken: %d offset: %d %x\n", rs1, rs2, taken, rv_sb_insn_imm(opcode), (unsigned int)rv_sb_insn_imm(opcode));
 	if (taken) {
-		regs->sepc += rv_sb_insn_imm(opcode);
+		regs->epc += rv_sb_insn_imm(opcode);
 	}
 
 }
@@ -219,17 +219,17 @@ void rv_simulate_jal(u32 opcode, long addr, struct pt_regs *regs)
 			((opcode & 0x100000) >> 9) |
 			(opcode & 0xFF000)
 			, 20);
-	set_register(regs, rv_ins_rd(opcode), regs->sepc + 4);
-	regs->sepc += imm;
+	set_register(regs, rv_ins_rd(opcode), regs->epc + 4);
+	regs->epc += imm;
 }
 NOKPROBE_SYMBOL(rv_simulate_jal);
 
 void rv_simulate_jalr(u32 opcode, long addr, struct pt_regs *regs)
 {
 	int32_t imm = rv_i_insn_imm(opcode);
-	set_register(regs, rv_ins_rd(opcode), regs->sepc + 4);
-	regs->sepc = get_register(regs, rv_ins_rs1(opcode)) + imm;
-	regs->sepc &= 0xFFFFFFFE;
+	set_register(regs, rv_ins_rd(opcode), regs->epc + 4);
+	regs->epc = get_register(regs, rv_ins_rs1(opcode)) + imm;
+	regs->epc &= 0xFFFFFFFE;
 }
 NOKPROBE_SYMBOL(rv_simulate_jalr);
 
@@ -243,7 +243,7 @@ NOKPROBE_SYMBOL(rv_simulate_lui);
 void rv_simulate_auipc(u32 opcode, long addr, struct pt_regs *regs)
 {
 	int32_t imm = rv_u_insn_imm(opcode);
-	set_register(regs, rv_ins_rd(opcode), regs->sepc + imm);
+	set_register(regs, rv_ins_rd(opcode), regs->epc + imm);
 }
 NOKPROBE_SYMBOL(rv_simulate_auipc);
 
