@@ -60,14 +60,14 @@ riscv_decompress_q0_insn(probe_opcode_t insn, struct kprobe *p)
 	return INSN_REJECTED;
 }
 
-static u16
+static s16
 riscv_c_q1_b_offset(probe_opcode_t insn)
 {
-	return move_bit_at(insn, 12, 8) |
+	return sign_extend32(move_bit_at(insn, 12, 8) |
 		((insn >> 7) & 0x18) |
 		((insn << 1) & 0xC0) |
 		((insn >> 2) & 0x6) |
-		move_bit_at(insn, 2, 5);
+		move_bit_at(insn, 2, 5), 8);
 }
 
 static enum probe_insn
@@ -215,14 +215,16 @@ riscv_decompress_q1_insn(probe_opcode_t insn, struct kprobe *p)
 		return INSN_GOOD_NO_SLOT;
 	} else if (func3 == 6) {
 		/* c.beqz */
-		rd = (insn & 0xF80) >> 7;
-		p->opcode = rv_beq(rd, RV_REG_ZERO, riscv_c_q1_b_offset(insn));
+		rd = ((insn & 0x380) >> 7) + 8;
+		p->opcode = rv_beq(rd, RV_REG_ZERO, (riscv_c_q1_b_offset(insn) & 0x1FFF) >> 1);
 		p->ainsn.handler = rv_simulate_rb_ins;
+		return INSN_GOOD_NO_SLOT;
 	} else if (func3 == 7) {
 		/* c.bnez */
-		rd = (insn & 0xF80) >> 7;
-		p->opcode = rv_bne(rd, RV_REG_ZERO, riscv_c_q1_b_offset(insn));
+		rd = ((insn & 0x380) >> 7) + 8;
+		p->opcode = rv_bne(rd, RV_REG_ZERO, (riscv_c_q1_b_offset(insn) & 0x1FFF) >> 1);
 		p->ainsn.handler = rv_simulate_rb_ins;
+		return INSN_GOOD_NO_SLOT;
 	}
 	return INSN_REJECTED;
 }
@@ -416,6 +418,13 @@ static __init int decode_insn_self_tests_init(void)
 		pr_warn("error uncompressing c.li a1, 8");
 	if (p.opcode != rv_addi(RV_REG_A1, RV_REG_ZERO,  8))
 		pr_warn("error uncompressing c.li a1, 8 %x", p.opcode);
+
+	/* bnez a3, 0xba */
+	res = riscv_decompress_insn(0xeecd, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing bnez a3, 0xba");
+	if (p.opcode != rv_bne(RV_REG_A3, RV_REG_ZERO,  0xba >> 1))
+		pr_warn("error uncompressing bnez a3, 0xba %x", p.opcode);
 
 	pr_info("Done running RISC-V insn decode tests.\n");
         return 0;
