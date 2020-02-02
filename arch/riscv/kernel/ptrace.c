@@ -134,7 +134,7 @@ struct pt_regs_offset {
 #define REG_OFFSET_END {.name = NULL, .offset = 0}
 
 static const struct pt_regs_offset regoffset_table[] = {
-	REG_OFFSET_NAME(sepc),
+	REG_OFFSET_NAME(epc),
 	REG_OFFSET_NAME(ra),
 	REG_OFFSET_NAME(sp),
 	REG_OFFSET_NAME(gp),
@@ -166,9 +166,9 @@ static const struct pt_regs_offset regoffset_table[] = {
 	REG_OFFSET_NAME(t4),
 	REG_OFFSET_NAME(t5),
 	REG_OFFSET_NAME(t6),
-	REG_OFFSET_NAME(sstatus),
-	REG_OFFSET_NAME(sbadaddr),
-	REG_OFFSET_NAME(scause),
+	REG_OFFSET_NAME(status),
+	REG_OFFSET_NAME(badaddr),
+	REG_OFFSET_NAME(cause),
 	REG_OFFSET_NAME(orig_a0),
 	REG_OFFSET_END,
 };
