@@ -292,8 +292,8 @@ static __init int rv_simulate_i_ins_self_tests(void)
 		pr_warn("Expected sp to be 0x10000: %lx\n", regs.sp);
 
 	opcode = rv_slli(RV_REG_SP, RV_REG_ZERO, 0x10);
-	if (regs.sepc != 0)
-		pr_warn("sepc shouln't be touched\n");
+	if (regs.epc != 0)
+		pr_warn("epc shouln't be touched\n");
 
 	pr_debug("SRLI\n");
 	opcode = rv_srli(RV_REG_T0, RV_REG_SP, 0x10);
@@ -484,8 +484,8 @@ static __init int rv_simulate_r_ins_self_tests(void)
 		pr_warn("Expected sp to be 0x10000: %lx\n", regs.sp);
 
 	opcode = rv_slli(RV_REG_SP, RV_REG_ZERO, 0x10);
-	if (regs.sepc != 0)
-		pr_warn("sepc shouln't be touched\n");
+	if (regs.epc != 0)
+		pr_warn("epc shouln't be touched\n");
 
 	pr_debug("SRLI\n");
 	opcode = rv_srli(RV_REG_T0, RV_REG_SP, 0x10);
@@ -618,124 +618,124 @@ static __init int rv_simulate_rb_ins_self_tests(void)
 	pr_debug("BEQ\n");
         opcode = rv_beq(RV_REG_SP, RV_REG_T0, 0x6 >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.t0 = 1;
 	opcode = rv_beq(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x6, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.sp = 1;
 	opcode = rv_beq(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x0)
-		pr_warn("Expected sepc to be 0: %lx\n", regs.sepc);
+	if (regs.epc != 0x0)
+		pr_warn("Expected epc to be 0: %lx\n", regs.epc);
 
 	pr_debug("BNE\n");
 	regs.t0 = 0;
         opcode = rv_bne(RV_REG_SP, RV_REG_T0, 0x6 >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.sp = 0;
 	opcode = rv_bne(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x6, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.sp = 1;
 	opcode = rv_bne(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x0)
-		pr_warn("Expected sepc to be 0: %lx\n", regs.sepc);
+	if (regs.epc != 0x0)
+		pr_warn("Expected epc to be 0: %lx\n", regs.epc);
 
 	pr_debug("BLT\n");
 	regs.t0 = 0;
 	regs.sp = (unsigned long)-1;
         opcode = rv_blt(RV_REG_SP, RV_REG_T0, 0x6 >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.t0 = (unsigned long)-2;
 	opcode = rv_blt(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x6, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.sp = 1;
 	regs.t0 = 2;
 	opcode = rv_blt(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x0)
-		pr_warn("Expected sepc to be 0: %lx\n", regs.sepc);
+	if (regs.epc != 0x0)
+		pr_warn("Expected epc to be 0: %lx\n", regs.epc);
 
 	pr_debug("BGE\n");
 	regs.t0 = 0;
 	regs.sp = 0;
         opcode = rv_bge(RV_REG_SP, RV_REG_T0, 0x6 >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.sp = (unsigned long)-2;
 	opcode = rv_bge(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x6, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.sp = 2;
 	regs.t0 = 1;
 	opcode = rv_bge(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x0)
-		pr_warn("Expected sepc to be 0: %lx\n", regs.sepc);
+	if (regs.epc != 0x0)
+		pr_warn("Expected epc to be 0: %lx\n", regs.epc);
 
 	pr_debug("BLTU\n");
 	regs.sp = 0;
 	regs.t0 = (unsigned long)-1;
         opcode = rv_bltu(RV_REG_SP, RV_REG_T0, 0x6 >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.sp = (unsigned long)-1;
 	regs.t0 = (unsigned long)-2;
 	opcode = rv_bltu(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x6, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.sp = 1;
 	regs.t0 = 2;
 	opcode = rv_bltu(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x0)
-		pr_warn("Expected sepc to be 0: %lx\n", regs.sepc);
+	if (regs.epc != 0x0)
+		pr_warn("Expected epc to be 0: %lx\n", regs.epc);
 
 	pr_debug("BGEU\n");
 	regs.t0 = 0;
 	regs.sp = 0;
         opcode = rv_bgeu(RV_REG_SP, RV_REG_T0, 0x6 >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.t0 = (unsigned long)-2;
 	opcode = rv_bgeu(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x6, &regs);
-	if (regs.sepc != 0x6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 0x6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 
 	regs.sp = 2;
 	regs.t0 = 1;
 	opcode = rv_bgeu(RV_REG_SP, RV_REG_T0, 0x1FFA >> 1);
 	rv_simulate_rb_ins(opcode, 0x0, &regs);
-	if (regs.sepc != 0x0)
-		pr_warn("Expected sepc to be 0: %lx\n", regs.sepc);
+	if (regs.epc != 0x0)
+		pr_warn("Expected epc to be 0: %lx\n", regs.epc);
 	return 0;
 }
 
@@ -750,16 +750,16 @@ static __init int rv_simulate_jump_ins_self_tests(void)
 	pr_debug("JAL\n");
         opcode = rv_jal(RV_REG_T0, 0xaaa >> 1);
 	rv_simulate_jal(opcode, 0x0, &regs);
-	if (regs.sepc != 0xaaa)
-		pr_warn("Expected sepc to be 0xaaa: %lx\n", regs.sepc);
+	if (regs.epc != 0xaaa)
+		pr_warn("Expected epc to be 0xaaa: %lx\n", regs.epc);
 	if (regs.t0 != 4)
 		pr_warn("Expected t0 to be 4: %lx\n", regs.t0);
 
-	regs.sepc = 8;
+	regs.epc = 8;
         opcode = rv_jal(RV_REG_T0, 0xFFFFE);
 	rv_simulate_jal(opcode, 0x0, &regs);
-	if (regs.sepc != 4)
-		pr_warn("Expected sepc to be 4: %lx\n", regs.sepc);
+	if (regs.epc != 4)
+		pr_warn("Expected epc to be 4: %lx\n", regs.epc);
 	if (regs.t0 != 12)
 		pr_warn("Expected t0 to be 8: %lx\n", regs.t0);
 
@@ -767,17 +767,17 @@ static __init int rv_simulate_jump_ins_self_tests(void)
 	regs.t1 = 3;
         opcode = rv_jalr(RV_REG_T0, RV_REG_T1, 4);
 	rv_simulate_jalr(opcode, 0x0, &regs);
-	if (regs.sepc != 6)
-		pr_warn("Expected sepc to be 6: %lx\n", regs.sepc);
+	if (regs.epc != 6)
+		pr_warn("Expected epc to be 6: %lx\n", regs.epc);
 	if (regs.t0 != 8)
 		pr_warn("Expected t0 to be 8: %lx\n", regs.t0);
 
-	regs.sepc = 8;
+	regs.epc = 8;
 	regs.t1 = 8;
         opcode = rv_jalr(RV_REG_T0, RV_REG_T1, 0xFFD);
 	rv_simulate_jalr(opcode, 0x0, &regs);
-	if (regs.sepc != 4)
-		pr_warn("Expected sepc to be 4: %lx\n", regs.sepc);
+	if (regs.epc != 4)
+		pr_warn("Expected epc to be 4: %lx\n", regs.epc);
 	if (regs.t0 != 12)
 		pr_warn("Expected t0 to be 8: %lx\n", regs.t0);
 
@@ -801,14 +801,14 @@ static __init int rv_simulate_ui_ins_self_tests(void)
 
 	pr_debug("AUIPC\n");
 	regs.t0 = 0;
-	regs.sepc = 0x321;
+	regs.epc = 0x321;
         opcode = rv_lui(RV_REG_T0, 0x12345000 >> 12);
 	opcode &= 0xFFFFFF9F;  // change it to auipc
 	rv_simulate_auipc(opcode, 0x0, &regs);
 	if (regs.t0!= 0x12345321)
 		pr_warn("Expected t0 to be 0x12345321: %lx\n", regs.t0);
-	if (regs.sepc != 0x321)
-		pr_warn("Expected sepc to be 0x123: %lx\n", regs.sepc);
+	if (regs.epc != 0x321)
+		pr_warn("Expected epc to be 0x123: %lx\n", regs.epc);
 	return 0;
 }
 
