@@ -207,10 +207,10 @@ riscv_decompress_q1_insn(probe_opcode_t insn, struct kprobe *p)
 			move_bit_at(insn, 8, 10) |
 			move_bit_at(insn, 7, 6) |
 			move_bit_at(insn, 6, 7) |
-			((insn >> 2) & 0xF) |
+			((insn >> 2) & 0xE) |
 			move_bit_at(insn, 2, 5);
 
-		p->opcode = rv_jal(RV_REG_ZERO, imm);
+		p->opcode = rv_jal(RV_REG_ZERO, imm >> 1);
 		p->ainsn.handler = rv_simulate_jal;
 		return INSN_GOOD_NO_SLOT;
 	} else if (func3 == 6) {
@@ -419,12 +419,33 @@ static __init int decode_insn_self_tests_init(void)
 	if (p.opcode != rv_addi(RV_REG_A1, RV_REG_ZERO,  8))
 		pr_warn("error uncompressing c.li a1, 8 %x", p.opcode);
 
-	/* bnez a3, 0xba */
+	/* c,bnez a3, 0xba */
 	res = riscv_decompress_insn(0xeecd, &p);
 	if (res != INSN_GOOD_NO_SLOT)
-		pr_warn("error uncompressing bnez a3, 0xba");
+		pr_warn("error uncompressing c.bnez a3, 0xba");
 	if (p.opcode != rv_bne(RV_REG_A3, RV_REG_ZERO,  0xba >> 1))
-		pr_warn("error uncompressing bnez a3, 0xba %x", p.opcode);
+		pr_warn("error uncompressing c.bnez a3, 0xba %x", p.opcode);
+
+	/* c.beqz a0, 0x28 */
+	res = riscv_decompress_insn(0xc505, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing beqz a0, 0x28");
+	if (p.opcode != rv_beq(RV_REG_A0, RV_REG_ZERO,  0x28 >> 1))
+		pr_warn("error uncompressing beqz a0, 0x28 %x", p.opcode);
+
+	/* c.nop */
+	res = riscv_decompress_insn(0x0001, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.nop");
+	if (p.opcode != rv_addi(RV_REG_ZERO, RV_REG_ZERO,  0x0))
+		pr_warn("error uncompressing c.nop %x", p.opcode);
+
+	/* c.j 0x34 */
+	res = riscv_decompress_insn(0xa815, &p);
+	if (res != INSN_GOOD_NO_SLOT)
+		pr_warn("error uncompressing c.j");
+	if (p.opcode != rv_jal(RV_REG_ZERO, 0x34 >> 1))
+		pr_warn("error uncompressing c.j %x", p.opcode);
 
 	pr_info("Done running RISC-V insn decode tests.\n");
         return 0;
